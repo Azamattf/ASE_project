@@ -77,17 +77,49 @@ def calculate_volume_averaged_stresses(panel_elements):
 # Read the CSV files
 print("Reading CSV files...")
 
-# Read 1D stress data
+# Read 1D stress data with flexible column handling
 df_1d = pd.read_csv('ProjectElementStresses1D.csv', skiprows=9)
-df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress', 'Empty']
+print(f"1D CSV has {len(df_1d.columns)} columns")
 
-# Read 2D/3D stress data  
+# Handle different column structures for 1D data
+if len(df_1d.columns) == 5:
+    df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress']
+elif len(df_1d.columns) == 6:
+    df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress', 'Empty']
+    df_1d = df_1d.drop('Empty', axis=1)
+else:
+    print(f"Unexpected number of columns in 1D CSV: {len(df_1d.columns)}")
+    print("Columns:", df_1d.columns.tolist())
+
+# Convert numeric columns safely
+df_1d['Elements'] = pd.to_numeric(df_1d['Elements'], errors='coerce')
+df_1d['Axial_Stress'] = pd.to_numeric(df_1d['Axial_Stress'], errors='coerce')
+
+# Read 2D/3D stress data with flexible column handling
 df_2d3d = pd.read_csv('ProjectElementStresses2D3D.csv', skiprows=9)
-df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY', 'Empty']
+print(f"2D/3D CSV has {len(df_2d3d.columns)} columns")
 
-# Drop the empty columns
-df_1d = df_1d.drop('Empty', axis=1)
-df_2d3d = df_2d3d.drop('Empty', axis=1)
+# Handle different column structures for 2D/3D data
+if len(df_2d3d.columns) == 8:
+    df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY']
+elif len(df_2d3d.columns) == 9:
+    df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY', 'Empty']
+    df_2d3d = df_2d3d.drop('Empty', axis=1)
+else:
+    print(f"Unexpected number of columns in 2D/3D CSV: {len(df_2d3d.columns)}")
+    print("Columns:", df_2d3d.columns.tolist())
+
+# Convert numeric columns safely
+df_2d3d['Elements'] = pd.to_numeric(df_2d3d['Elements'], errors='coerce')
+df_2d3d['XX'] = pd.to_numeric(df_2d3d['XX'], errors='coerce')
+df_2d3d['XY'] = pd.to_numeric(df_2d3d['XY'], errors='coerce')
+df_2d3d['YY'] = pd.to_numeric(df_2d3d['YY'], errors='coerce')
+
+# Drop any rows with NaN values that might have been created from conversion errors
+df_1d = df_1d.dropna()
+df_2d3d = df_2d3d.dropna()
+
+print(f"Successfully loaded {len(df_1d)} rows of 1D data and {len(df_2d3d)} rows of 2D/3D data")
 
 print("Panel Buckling Analysis with Biaxial Loading")
 print("="*60)
@@ -202,4 +234,3 @@ if finite_rf_values:
 results_df = pd.DataFrame(results)
 results_df.to_csv('Biaxial_Panel_Buckling_Results.csv', index=False)
 print(f"\nDetailed results saved to: Biaxial_Panel_Buckling_Results.csv")
-

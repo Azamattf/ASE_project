@@ -1,5 +1,15 @@
 import pandas as pd
 import numpy as np
+import sys
+
+# Check command line arguments
+if len(sys.argv) != 4:
+    print("Usage: python script_e_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus>")
+    sys.exit(1)
+
+csv_1d_file = sys.argv[1]
+csv_2d3d_file = sys.argv[2]
+E = float(sys.argv[3])  # E-modulus from command line argument
 
 # Define geometric parameters
 panel_volume = 600000  # mm^3
@@ -9,7 +19,6 @@ shell_element_volume = panel_volume / 3  # each panel is made up of 3 shell elem
 a = 750  # panel length (mm) (of WHOLE PANEL, not INDIVIDUAL ELEMENTS)
 b = 200  # panel width (mm)
 t = 4.0  # skin thickness (mm)
-E = 64885.28  # E-modulus B-basis (MPa)
 nu = 0.34  # Poisson's ratio - found from aluminium model card in HyperMesh
 
 def find_optimal_mn_for_biaxial_buckling(alpha, beta):
@@ -29,7 +38,7 @@ def find_optimal_mn_for_biaxial_buckling(alpha, beta):
                 if k_xxx < min_k_xxx:
                     min_k_xxx = k_xxx
                     optimal_m, optimal_n = m, n
-    
+
     return optimal_m, optimal_n, min_k_xxx
 
 def calculate_shear_buckling_coefficient(alpha):
@@ -78,7 +87,7 @@ def calculate_volume_averaged_stresses(panel_elements):
 print("Reading CSV files...")
 
 # Read 1D stress data with flexible column handling
-df_1d = pd.read_csv('ProjectElementStresses1D.csv', skiprows=9)
+df_1d = pd.read_csv(csv_1d_file, skiprows=9)
 print(f"1D CSV has {len(df_1d.columns)} columns")
 
 # Handle different column structures for 1D data
@@ -96,7 +105,7 @@ df_1d['Elements'] = pd.to_numeric(df_1d['Elements'], errors='coerce')
 df_1d['Axial_Stress'] = pd.to_numeric(df_1d['Axial_Stress'], errors='coerce')
 
 # Read 2D/3D stress data with flexible column handling
-df_2d3d = pd.read_csv('ProjectElementStresses2D3D.csv', skiprows=9)
+df_2d3d = pd.read_csv(csv_2d3d_file, skiprows=9)
 print(f"2D/3D CSV has {len(df_2d3d.columns)} columns")
 
 # Handle different column structures for 2D/3D data
@@ -234,3 +243,4 @@ if finite_rf_values:
 results_df = pd.DataFrame(results)
 results_df.to_csv('Biaxial_Panel_Buckling_Results.csv', index=False)
 print(f"\nDetailed results saved to: Biaxial_Panel_Buckling_Results.csv")
+

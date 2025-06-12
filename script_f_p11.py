@@ -1,16 +1,25 @@
 import pandas as pd
 import numpy as np
+import sys
+
+# Check command line arguments
+if len(sys.argv) != 5:
+    print("Usage: python script_f_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus> <yield_strength>")
+    sys.exit(1)
+
+csv_1d_file = sys.argv[1]
+csv_2d3d_file = sys.argv[2]
+E = float(sys.argv[3])  # E-modulus from command line argument
+sigma_y = float(sys.argv[4])  # Yield strength from command line argument
 
 # --- 1. Parameters and Assumptions ---
 
 # Material Properties
-E = 65022.77  # E-modulus B-basis (MPa)
-sigma_y = 490   # Yield strength (MPa)
 nu = 0.34     # Poisson's ratio
 
 # Geometric Parameters
-L = 300         # Total length of one stringer (column length) in mm
-stringer_pitch = 150 # Stringer spacing (mm)
+L = 750         # Total length of one stringer (column length) in mm
+stringer_pitch = 200 # Stringer spacing (mm)
 num_stringers = 9
 stringers_per_row = 3
 
@@ -134,8 +143,8 @@ def calculate_volume_averaged_stress(stresses_1d, stresses_2d_left, stresses_2d_
 
 # --- 3. Main Execution ---
 try:
-    df_1d = pd.read_csv('ProjectElementStresses1D_Amjad.csv', skiprows=9, header=None, usecols=[0,2,4], names=['Elements', 'Loadcase', 'Axial_Stress'])
-    df_2d = pd.read_csv('ProjectElementStresses2D3D_Amjad.csv', skiprows=9, header=None, usecols=[0,2,5], names=['Elements', 'Loadcase', 'XX'])
+    df_1d = pd.read_csv(csv_1d_file, skiprows=9, header=None, usecols=[0,2,4], names=['Elements', 'Loadcase', 'Axial_Stress'])
+    df_2d = pd.read_csv(csv_2d3d_file, skiprows=9, header=None, usecols=[0,2,5], names=['Elements', 'Loadcase', 'XX'])
     df_1d = df_1d.apply(pd.to_numeric, errors='coerce').dropna()
     df_2d = df_2d.apply(pd.to_numeric, errors='coerce').dropna()
     print("Successfully loaded 1D and 2D stress data.")

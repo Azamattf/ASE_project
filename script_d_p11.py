@@ -1,8 +1,15 @@
 import pandas as pd
 import numpy as np
+import sys
 
-# Define maximum allowable stress
-sigma_max = 530  # MPa
+# Check command line arguments
+if len(sys.argv) != 4:
+    print("Usage: python script_d_p11.py <1D_csv_file> <2D3D_csv_file> <sigma_max>")
+    sys.exit(1)
+
+csv_1d_file = sys.argv[1]
+csv_2d3d_file = sys.argv[2]
+sigma_max = float(sys.argv[3])
 
 def calculate_reserve_factor(stress_value, sigma_max):
     """Calculate reserve factor RF = sigma_max / |stress|"""
@@ -16,11 +23,11 @@ def calculate_von_mises_stress(sigma_xx, sigma_yy, tau_xy):
 print("Reading CSV files...")
 
 # Read 1D stress data
-df_1d = pd.read_csv('ProjectElementStresses1D.csv', skiprows=9)  # Skip header rows
+df_1d = pd.read_csv(csv_1d_file, skiprows=9)  # Skip header rows
 df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress', 'Empty']
 
 # Read 2D/3D stress data  
-df_2d3d = pd.read_csv('ProjectElementStresses2D3D.csv', skiprows=9)  # Skip header rows
+df_2d3d = pd.read_csv(csv_2d3d_file, skiprows=9)  # Skip header rows
 df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY', 'Empty']
 
 # Drop the empty columns

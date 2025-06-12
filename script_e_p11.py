@@ -22,22 +22,35 @@ t = 4.0  # skin thickness (mm)
 nu = 0.34  # Poisson's ratio - found from aluminium model card in HyperMesh
 
 def find_optimal_mn_for_biaxial_buckling(alpha, beta):
-    """Find optimal m and n that minimize k_xxx for biaxial buckling"""
+    """
+    Find optimal m and n that minimize k_xxx for biaxial buckling, 
+    ensuring k_xxx is always positive.
+    """
     min_k_xxx = float('inf')
     optimal_m, optimal_n = 1, 1
     
     # Try different combinations of m and n (integers from 1 to 10)
     for m in range(1, 11):
         for n in range(1, 11):
-            numerator = (m**2 + n**2 * alpha**2)**2
-            denominator = alpha**2 * (m**2 + beta * n**2 * alpha**2)
             
-            # Avoid division by zero
-            if denominator != 0:
-                k_xxx = numerator / denominator
-                if k_xxx < min_k_xxx:
-                    min_k_xxx = k_xxx
-                    optimal_m, optimal_n = m, n
+            # This is the term that can become negative if beta is negative
+            buckling_term = (m**2 + beta * n**2 * alpha**2)
+            
+            # --- CORRECTION ---
+            # Only proceed if the buckling term is positive.
+            # A non-positive term means this mode is stabilized by tension and won't buckle.
+            if buckling_term > 0:
+                denominator = alpha**2 * buckling_term
+                
+                # This check is still good practice, though less likely to be zero now.
+                if denominator != 0:
+                    numerator = (m**2 + n**2 * alpha**2)**2
+                    k_xxx = numerator / denominator
+                    
+                    if k_xxx < min_k_xxx:
+                        min_k_xxx = k_xxx
+                        optimal_m, optimal_n = m, n
+            # If buckling_term is <= 0, we simply ignore this (m, n) combination.
 
     return optimal_m, optimal_n, min_k_xxx
 
@@ -152,8 +165,8 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
     # Group elements into panels (every 3 elements form a panel)
     num_panels = len(lc_data) // 3
     
-    print(f"{'Panel':<6} {'σ_avg,XX':<10} {'σ_avg,YY':<10} {'τ_avg,XY':<10} {'β':<8} {'k_xxx':<8} {'k_s':<8} {'σ_x,cr':<10} {'τ_xy,cr':<10} {'RF':<10}")
-    print("-" * 110)
+    print(f"{'Panel':<6} {'σ_avg,XX':<10} {'σ_avg,YY':<10} {'τ_avg,XY':<10} {'β':<8} {'k_xxx':<8} {'k_s':<8} {'σ_x,cr':<10} {'τ_xy,cr':<10} {'RF':<10} {'m':<4} {'n':<4}")
+    print("-" * 120)
     
     panel_results = []
     
@@ -186,7 +199,8 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
         rf_combined = solve_combined_reserve_factor(sigma_avg_xx, sigma_avg_xy, sigma_x_cr, tau_xy_cr)
         
         print(f"{panel_id+1:<6} {sigma_avg_xx:<10.2f} {sigma_avg_yy:<10.2f} {sigma_avg_xy:<10.2f} "
-              f"{beta:<8.3f} {k_xxx:<8.2f} {k_s:<8.2f} {sigma_x_cr:<10.1f} {tau_xy_cr:<10.1f} {rf_combined:<10.3f}")
+              f"{beta:<8.3f} {k_xxx:<8.2f} {k_s:<8.2f} {sigma_x_cr:<10.1f} {tau_xy_cr:<10.1f} {rf_combined:<10.3f} "
+              f"{optimal_m:<4} {optimal_n:<4}")
         
         panel_results.append({
             'LoadCase': loadcase,
@@ -243,4 +257,3 @@ if finite_rf_values:
 results_df = pd.DataFrame(results)
 results_df.to_csv('Biaxial_Panel_Buckling_Results.csv', index=False)
 print(f"\nDetailed results saved to: Biaxial_Panel_Buckling_Results.csv")
-

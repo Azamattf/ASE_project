@@ -13,7 +13,7 @@ sigma_max = float(sys.argv[3])
 
 def calculate_reserve_factor(stress_value, sigma_max):
     """Calculate reserve factor RF = sigma_max / |stress|"""
-    return sigma_max / abs(stress_value) if stress_value != 0 else float('inf')
+    return sigma_max / (1.5 * abs(stress_value)) if stress_value != 0 else float('inf')
 
 def calculate_von_mises_stress(sigma_xx, sigma_yy, tau_xy):
     """Calculate Von Mises stress using the formula: sqrt(σ_XX² - σ_XX*σ_YY + σ_YY² + 3*τ_XY²)"""
@@ -24,15 +24,51 @@ print("Reading CSV files...")
 
 # Read 1D stress data
 df_1d = pd.read_csv(csv_1d_file, skiprows=9)  # Skip header rows
-df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress', 'Empty']
+print(f"1D CSV has {len(df_1d.columns)} columns")
+print("First few rows of 1D data:")
+print(df_1d.head())
+
+# Assign column names based on actual number of columns
+if len(df_1d.columns) == 6:
+    df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress', 'Empty']
+    df_1d = df_1d.drop('Empty', axis=1)
+elif len(df_1d.columns) == 5:
+    df_1d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Axial_Stress']
+else:
+    print(f"Unexpected number of columns in 1D CSV: {len(df_1d.columns)}")
+    print("Column names will be auto-assigned")
+
+# Convert numeric columns to float
+df_1d['Axial_Stress'] = pd.to_numeric(df_1d['Axial_Stress'], errors='coerce')
+
+# Remove rows with NaN values
+df_1d = df_1d.dropna(subset=['Axial_Stress'])
+print(f"1D data after cleaning: {len(df_1d)} rows")
 
 # Read 2D/3D stress data  
 df_2d3d = pd.read_csv(csv_2d3d_file, skiprows=9)  # Skip header rows
-df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY', 'Empty']
+print(f"2D3D CSV has {len(df_2d3d.columns)} columns")
+print("First few rows of 2D3D data:")
+print(df_2d3d.head())
 
-# Drop the empty columns
-df_1d = df_1d.drop('Empty', axis=1)
-df_2d3d = df_2d3d.drop('Empty', axis=1)
+# Assign column names based on actual number of columns
+if len(df_2d3d.columns) == 9:
+    df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY', 'Empty']
+    df_2d3d = df_2d3d.drop('Empty', axis=1)
+elif len(df_2d3d.columns) == 8:
+    df_2d3d.columns = ['Elements', 'FileID', 'Loadcase', 'Step', 'Layer', 'XX', 'XY', 'YY']
+else:
+    print(f"Unexpected number of columns in 2D3D CSV: {len(df_2d3d.columns)}")
+    print("Column names will be auto-assigned")
+
+# Convert numeric columns to float
+df_2d3d['XX'] = pd.to_numeric(df_2d3d['XX'], errors='coerce')
+df_2d3d['XY'] = pd.to_numeric(df_2d3d['XY'], errors='coerce')
+df_2d3d['YY'] = pd.to_numeric(df_2d3d['YY'], errors='coerce')
+
+# Remove rows with NaN values in stress columns
+df_2d3d = df_2d3d.dropna(subset=['XX', 'XY', 'YY'])
+print(f"2D3D data after cleaning: {len(df_2d3d)} rows")
 
 print("Processing 1D Axial Stress Data...")
 print("="*50)
@@ -51,9 +87,15 @@ for loadcase in sorted(df_1d['Loadcase'].unique()):
         print(f"{row['Elements']:<8} {row['Axial_Stress']:<18.2f} {row['Reserve_Factor']:<15.2f}")
     
     # Summary statistics
-    min_rf = lc_data['Reserve_Factor'].min()
-    critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
-    print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
+    if len(df_1d) == 0:
+        print("No valid 1D stress data found!")
+    else:
+        min_rf = lc_data['Reserve_Factor'].min()
+        if pd.isna(min_rf):
+            print("No valid reserve factors calculated for this load case")
+        else:
+            critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
+            print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
 
 print("\n" + "="*70)
 print("Processing 2D/3D Stress Data...")
@@ -79,9 +121,15 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
               f"{row['Von_Mises_Stress']:<12.2f} {row['Reserve_Factor']:<15.2f}")
     
     # Summary statistics
-    min_rf = lc_data['Reserve_Factor'].min()
-    critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
-    print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
+    if len(df_2d3d) == 0:
+        print("No valid 2D/3D stress data found!")
+    else:
+        min_rf = lc_data['Reserve_Factor'].min()
+        if pd.isna(min_rf):
+            print("No valid reserve factors calculated for this load case")
+        else:
+            critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
+            print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
 
 print("\n" + "="*70)
 print("OVERALL SUMMARY")

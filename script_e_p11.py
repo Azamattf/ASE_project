@@ -65,26 +65,50 @@ def calculate_critical_stress(k, t, b):
     """Calculate critical stress using the general formula"""
     return k * (np.pi**2 * E) / (12 * (1 - nu**2)) * (t/b)**2
 
-def solve_combined_reserve_factor(sigma_avg_xx, tau_avg_xy, sigma_x_cr, tau_xy_cr):
-    """Solve the quadratic equation for combined reserve factor"""
-    # Calculate coefficients for the quadratic equation A*RF² + B*RF - 1 = 0
-    B = abs(sigma_avg_xx) / sigma_x_cr
-    A = (abs(tau_avg_xy) / tau_xy_cr)**2
-    
-    # Solve quadratic equation: A*RF² + B*RF - 1 = 0
-    # Using quadratic formula: RF = (-B + sqrt(B² + 4A)) / (2A)
-    if A == 0:  # Pure biaxial case
-        if B != 0:
-            return 1.0 / B
-        else:
-            return float('inf')
-    
-    discriminant = B**2 + 4*A
-    if discriminant < 0:
+def calculate_combined_reserve_factor(sigma_avg_xx, tau_avg_xy, sigma_x_cr, tau_xy_cr, fos=1.5):
+    """
+    Calculates the combined reserve factor against the ultimate load using a factor of safety (FoS).
+
+    This function uses the interaction formula for biaxial and shear stresses 
+    from the formulary. The calculation determines if the panel can 
+    withstand the ultimate loads (limit loads * FoS).
+
+    A result >= 1.0 indicates the design is safe.
+
+    Args:
+        sigma_avg_xx (float): The average limit stress in the x-direction.
+        tau_avg_xy (float): The average limit shear stress.
+        sigma_x_cr (float): The critical buckling stress for biaxial loading.
+        tau_xy_cr (float): The critical buckling stress for shear loading.
+        fos (float, optional): The factor of safety. Defaults to 1.5.
+
+    Returns:
+        float: The combined reserve factor against the ultimate load.
+    """
+    # Avoid division by zero if critical stresses are not positive
+    if sigma_x_cr <= 0 or tau_xy_cr <= 0:
         return float('inf')
+
+    # Calculate the stress ratios using the ultimate loads
+    # Ratio_biaxial = Ultimate_applied_stress / Critical_stress
+    # This is equivalent to 1 / RF_biaxial_ult
+    ratio_biaxial_ult = abs(fos * sigma_avg_xx) / sigma_x_cr
+
+    # Ratio_shear = Ultimate_applied_stress / Critical_stress
+    # This is equivalent to 1 / RF_shear_ult
+    ratio_shear_ult = abs(fos * tau_avg_xy) / tau_xy_cr
+
+    # Apply the interaction formula from the formulary 
+    # 1/RF_ult = (1/RF_biaxial_ult) + (1/RF_shear_ult)^2
+    inverse_rf_ultimate = ratio_biaxial_ult + ratio_shear_ult**2
     
-    rf = (-B + np.sqrt(discriminant)) / (2*A)
-    return rf
+    if inverse_rf_ultimate == 0:
+        return float('inf')  # No load applied
+        
+    # The final RF is the inverse of this value
+    rf_ultimate = 1.0 / inverse_rf_ultimate
+    
+    return rf_ultimate
 
 def calculate_volume_averaged_stresses(panel_elements):
     """Calculate volume-averaged stresses for a panel (3 elements)"""
@@ -196,7 +220,7 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
         tau_xy_cr = calculate_critical_stress(k_s, t, b)
         
         # Step 4: Calculate combined reserve factor using interaction equation
-        rf_combined = solve_combined_reserve_factor(sigma_avg_xx, sigma_avg_xy, sigma_x_cr, tau_xy_cr)
+        rf_combined = calculate_combined_reserve_factor(sigma_avg_xx, sigma_avg_xy, sigma_x_cr, tau_xy_cr)
         
         print(f"{panel_id+1:<6} {sigma_avg_xx:<10.2f} {sigma_avg_yy:<10.2f} {sigma_avg_xy:<10.2f} "
               f"{beta:<8.3f} {k_xxx:<8.2f} {k_s:<8.2f} {sigma_x_cr:<10.1f} {tau_xy_cr:<10.1f} {rf_combined:<10.3f} "

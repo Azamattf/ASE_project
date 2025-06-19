@@ -84,7 +84,7 @@ for loadcase in sorted(df_1d['Loadcase'].unique()):
     print("-" * 45)
     
     for _, row in lc_data.iterrows():
-        print(f"{row['Elements']:<8} {row['Axial_Stress']:<18.2f} {row['Reserve_Factor']:<15.2f}")
+        print(f"{row['Elements']:<8} {row['Axial_Stress']:<18.5f} {row['Reserve_Factor']:<15.5f}")
     
     # Summary statistics
     if len(df_1d) == 0:
@@ -95,7 +95,7 @@ for loadcase in sorted(df_1d['Loadcase'].unique()):
             print("No valid reserve factors calculated for this load case")
         else:
             critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
-            print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
+            print(f"\nMinimum Reserve Factor: {min_rf:.5f} (Element {critical_element})")
 
 print("\n" + "="*70)
 print("Processing 2D/3D Stress Data...")
@@ -118,7 +118,7 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
     
     for _, row in lc_data.iterrows():
         print(f"{row['Elements']:<8} {row['XX']:<8.1f} {row['XY']:<8.1f} {row['YY']:<8.1f} "
-              f"{row['Von_Mises_Stress']:<12.2f} {row['Reserve_Factor']:<15.2f}")
+              f"{row['Von_Mises_Stress']:<12.5f} {row['Reserve_Factor']:<15.5f}")
     
     # Summary statistics
     if len(df_2d3d) == 0:
@@ -129,7 +129,7 @@ for loadcase in sorted(df_2d3d['Loadcase'].unique()):
             print("No valid reserve factors calculated for this load case")
         else:
             critical_element = lc_data.loc[lc_data['Reserve_Factor'].idxmin(), 'Elements']
-            print(f"\nMinimum Reserve Factor: {min_rf:.2f} (Element {critical_element})")
+            print(f"\nMinimum Reserve Factor: {min_rf:.5f} (Element {critical_element})")
 
 print("\n" + "="*70)
 print("OVERALL SUMMARY")
@@ -139,11 +139,11 @@ print("="*70)
 all_1d_rf = df_1d['Reserve_Factor'].min()
 all_2d3d_rf = df_2d3d['Reserve_Factor'].min()
 
-print(f"Minimum Reserve Factor in 1D Elements: {all_1d_rf:.2f}")
-print(f"Minimum Reserve Factor in 2D/3D Elements: {all_2d3d_rf:.2f}")
+print(f"Minimum Reserve Factor in 1D Elements: {all_1d_rf:.5f}")
+print(f"Minimum Reserve Factor in 2D/3D Elements: {all_2d3d_rf:.5f}")
 
 overall_min = min(all_1d_rf, all_2d3d_rf)
-print(f"\nOverall Minimum Reserve Factor: {overall_min:.2f}")
+print(f"\nOverall Minimum Reserve Factor: {overall_min:.5f}")
 
 if overall_min < 1.0:
     print("⚠️  WARNING: Reserve factor < 1.0 indicates potential failure!")
@@ -151,8 +151,8 @@ else:
     print("✅ All elements have acceptable reserve factors (RF > 1.0)")
 
 # Save results to CSV files
-df_1d.to_csv('1D_Stress_Results_with_RF.csv', index=False)
-df_2d3d.to_csv('2D3D_Stress_Results_with_RF.csv', index=False)
+df_1d.to_csv('1D_Stress_Results_with_RF.csv', index=False, float_format='%.5f')
+df_2d3d.to_csv('2D3D_Stress_Results_with_RF.csv', index=False, float_format='%.5f')
 
 print(f"\nResults saved to:")
 print(f"- 1D_Stress_Results_with_RF.csv")

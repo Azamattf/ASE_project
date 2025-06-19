@@ -134,7 +134,7 @@ for loadcase in sorted(df_1d['Loadcase'].unique()):
         sig_avg = calculate_volume_averaged_stress(stresses_1d, stresses_2d_left, stresses_2d_right, stringer_element_volume, shell_element_volume)
 
         # Set the cutoff stress directly to the yield strength
-        sigma_cutoff = sigma_y
+        sigma_cutoff = 490 # sigma_y
 
         sigma_cr, lambda_crit = calculate_ejc_stress_and_lambda_crit(lambda_slenderness, sigma_cutoff)
 
@@ -157,5 +157,5 @@ for loadcase in sorted(df_1d['Loadcase'].unique()):
 if results:
     results_df = pd.DataFrame(results)
     output_filename = 'Submission_Column_Buckling_Final_with_FoS.csv'
-    results_df.to_csv(output_filename, index=False, float_format='%.3f')
+    results_df.to_csv(output_filename, index=False, float_format='%.5f')
     print(f"\n\n✅ Final column buckling results (with FoS) saved to: {output_filename}")

@@ -265,12 +265,12 @@ if finite_rf_values:
     overall_min_rf = min(finite_rf_values)
     critical_result = next(result for result in results if result['RF_combined'] == overall_min_rf)
 
-    print(f"Overall Minimum RF_combined: {overall_min_rf:.4f}")
+    print(f"Overall Minimum RF_combined: {overall_min_rf:.5f}")
     print(f"Critical Panel: Load Case {critical_result['LoadCase']}, Panel {critical_result['Panel']}")
     print(f"Critical Panel Elements: {critical_result['Elements']}")
-    print(f"Critical Panel Stresses: σ_xx={critical_result['sigma_avg_xx']:.2f}, σ_yy={critical_result['sigma_avg_yy']:.2f}, τ_xy={critical_result['sigma_avg_xy']:.2f}")
+    print(f"Critical Panel Stresses: σ_xx={critical_result['sigma_avg_xx']:.5f}, σ_yy={critical_result['sigma_avg_yy']:.5f}, τ_xy={critical_result['sigma_avg_xy']:.5f}")
     print(f"Critical Panel β = {critical_result['beta']:.3f}")
-    print(f"Critical Buckling Coefficients: k_xxx={critical_result['k_xxx']:.2f}, k_s={critical_result['k_s']:.2f}")
+    print(f"Critical Buckling Coefficients: k_xxx={critical_result['k_xxx']:.5f}, k_s={critical_result['k_s']:.5f}")
 
     if overall_min_rf < 1.0:
         print("⚠️  WARNING: Combined buckling reserve factor < 1.0 indicates potential buckling failure!")
@@ -279,5 +279,5 @@ if finite_rf_values:
 
 # Save results to CSV
 results_df = pd.DataFrame(results)
-results_df.to_csv('Biaxial_Panel_Buckling_Results.csv', index=False)
+results_df.to_csv('Biaxial_Panel_Buckling_Results.csv', index=False, float_format='%.5f')
 print(f"\nDetailed results saved to: Biaxial_Panel_Buckling_Results.csv")

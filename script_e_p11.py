@@ -3,22 +3,22 @@ import numpy as np
 import sys
 
 # Check command line arguments
-if len(sys.argv) != 4:
-    print("Usage: python script_e_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus>")
+if len(sys.argv) != 7:
+    print("Usage: python script_e_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus> <panel_length> <panel_width> <skin_thickness>")
     sys.exit(1)
 
 csv_1d_file = sys.argv[1]
 csv_2d3d_file = sys.argv[2]
 E = float(sys.argv[3])  # E-modulus from command line argument
+a = float(sys.argv[4])  # panel length (mm)
+b = float(sys.argv[5])  # panel width (mm)
+t = float(sys.argv[6])  # skin thickness (mm)
 
-# Define geometric parameters
-panel_volume = 600000  # mm^3
+# Calculate panel volume based on dimensions
+panel_volume = a * b * t  # mm^3
 shell_element_volume = panel_volume / 3  # each panel is made up of 3 shell elements
 
-# Geometric parameters for buckling analysis
-a = 750  # panel length (mm) (of WHOLE PANEL, not INDIVIDUAL ELEMENTS)
-b = 200  # panel width (mm)
-t = 4.0  # skin thickness (mm)
+# Material properties
 nu = 0.34  # Poisson's ratio - found from aluminium model card in HyperMesh
 
 def find_optimal_mn_for_biaxial_buckling(alpha, beta):
@@ -142,7 +142,7 @@ df_1d['Elements'] = pd.to_numeric(df_1d['Elements'], errors='coerce')
 df_1d['Axial_Stress'] = pd.to_numeric(df_1d['Axial_Stress'], errors='coerce')
 
 # Read 2D/3D stress data with flexible column handling
-df_2d3d = pd.read_csv(csv_2d3d_file, skiprows=9)
+df_2d3d = pd.read_csv(csv_2d3d_file, skiprows=9)    
 print(f"2D/3D CSV has {len(df_2d3d.columns)} columns")
 
 # Handle different column structures for 2D/3D data
@@ -174,6 +174,8 @@ print("="*60)
 aspect_ratio = a/b  # α = a/b
 print(f"Panel dimensions: {a} x {b} mm")
 print(f"Skin thickness: {t} mm")
+print(f"Panel volume: {panel_volume:.0f} mm³")
+print(f"Shell element volume: {shell_element_volume:.0f} mm³")
 print(f"Aspect ratio (α = a/b): {aspect_ratio:.3f}")
 
 # Process each load case

@@ -3,33 +3,85 @@ import numpy as np
 import sys
 
 # Check command line arguments
-if len(sys.argv) != 5:
-    print("Usage: python script_f_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus> <yield_strength>")
+if len(sys.argv) != 12:
+    print("Usage: python script_f_p11.py <1D_csv_file> <2D3D_csv_file> <E_modulus> <yield_strength> <panel_length> <panel_width> <skin_thickness> <stringer_height> <stringer_thickness> <stringer_web_width> <stringer_lip_width>")
     sys.exit(1)
 
 csv_1d_file = sys.argv[1]
 csv_2d3d_file = sys.argv[2]
 E = float(sys.argv[3])  # E-modulus from command line argument
 sigma_y = float(sys.argv[4])  # Yield strength from command line argument
+panel_length = float(sys.argv[5])  # Panel length (mm)
+panel_width = float(sys.argv[6])  # Panel width (stringer pitch) (mm)
+t_skin = float(sys.argv[7])  # Skin thickness (mm)
+height = float(sys.argv[8])  # Stringer height (mm)
+thickness = float(sys.argv[9])  # Stringer thickness (mm)
+web_width = float(sys.argv[10])  # Stringer web width (mm)
+lip_width = float(sys.argv[11])  # Stringer lip width (mm)
 
 # --- 1. Parameters and Assumptions ---
 
 # Material Properties
 nu = 0.34      # Poisson's ratio
 FoS = 1.5      # Factor of Safety
+aluminum_density = 2.7e-9  # tons per mm³
 
-# Geometric Parameters
-L = 750        # Total length of one stringer (column length) in mm
-stringer_pitch = 200 # Stringer spacing (mm)
+# Geometric Parameters (now from command line)
+L = panel_length        # Total length of one stringer (column length) in mm
+stringer_pitch = panel_width # Stringer spacing (mm)
 num_stringers = 9
 stringers_per_row = 3
-t_skin = 4.0   # Skin thickness is constant for this task
 
-# Lipped C-Channel Stringer Dimensions
-height = 25.0      # Overall Height of the stringer's vertical flanges
-thickness = 2.0    # Uniform thickness of the stringer
-web_width = 20.0   # Width of the stringer's web
-lip_width = 15.0   # Width of the lips
+# Calculate shell element volume based on panel dimensions
+shell_element_volume = (panel_length * panel_width * t_skin) / 3.0
+
+def calculate_total_mass():
+    """Calculate total mass of the structure"""
+    # Total panel area calculation
+    # Assuming we have 10 panels (from the original analysis), each with dimensions panel_length x panel_width
+    total_panel_area = 10 * panel_length * panel_width  # mm²
+    total_skin_volume = total_panel_area * t_skin  # mm³
+    
+    # Single stringer cross-sectional area calculation
+    # Lipped C-Channel: web + 2*flanges + 2*lips
+    h_flange = height - thickness
+    stringer_cross_section = (web_width * thickness +  # web
+                             2 * thickness * h_flange +  # two flanges
+                             2 * lip_width * thickness)  # two lips
+    
+    # Total stringer volume (9 stringers, each with length L)
+    total_stringer_volume = num_stringers * stringer_cross_section * L  # mm³
+    
+    # Total structure volume
+    total_volume = total_skin_volume + total_stringer_volume  # mm³
+    
+    # Total mass
+    total_mass = total_volume * aluminum_density  # tons
+    
+    return total_mass, total_skin_volume, total_stringer_volume, total_volume, stringer_cross_section
+
+print(f"Geometric Parameters:")
+print(f"  Panel Length (L): {L} mm")
+print(f"  Stringer Pitch: {stringer_pitch} mm")
+print(f"  Skin Thickness: {t_skin} mm")
+print(f"  Stringer Height: {height} mm")
+print(f"  Stringer Thickness: {thickness} mm")
+print(f"  Stringer Web Width: {web_width} mm")
+print(f"  Stringer Lip Width: {lip_width} mm")
+print(f"  Shell Element Volume: {shell_element_volume:.0f} mm³")
+
+# Calculate and display mass information
+total_mass, skin_volume, stringer_volume, total_volume, stringer_cross_section = calculate_total_mass()
+
+print(f"\n{'='*60}")
+print("MASS CALCULATION")
+print(f"{'='*60}")
+print(f"Aluminum Density: {aluminum_density} tons/mm³")
+print(f"Stringer Cross-Sectional Area: {stringer_cross_section:.2f} mm²")
+print(f"Total Skin Volume: {skin_volume:.0f} mm³")
+print(f"Total Stringer Volume: {stringer_volume:.0f} mm³")
+print(f"Total Structure Volume: {total_volume:.0f} mm³")
+print(f"Total Structure Mass: {total_mass:.6f} tons ({total_mass*1000:.3f} kg)")
 
 # --- 2. Calculation Functions ---
 
@@ -68,6 +120,7 @@ def calculate_combined_section_properties(t_skin):
     r_gyr = np.sqrt(I_comb / total_area)
     lambda_slenderness = (1.0 * L) / r_gyr
 
+    print(f"\n{'='*60}")
     print("Combined Section Properties (Lipped C-Channel - Corrected):")
     print("="*60)
     print(f"Total Area (A_total):         {total_area:.5f} mm²")
@@ -108,8 +161,6 @@ try:
 except FileNotFoundError as e:
     print(f"⚠️ Error: Could not find a required data file: {e.filename}")
     sys.exit(1)
-
-shell_element_volume = 200000.0
 
 # Perform section calculations once
 I_comb, r_gyr, lambda_slenderness, stringer_element_volume = calculate_combined_section_properties(t_skin)
